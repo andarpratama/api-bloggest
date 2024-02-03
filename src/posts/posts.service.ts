@@ -1,10 +1,16 @@
 // post.service.ts
-import { ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Connection, QueryFailedError, Repository } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { ImageUploadDto } from './dto/image-upload.dto';
+import * as crypto from 'crypto';
+import * as path from 'path';
+import { join } from 'path';
+import { promises as fsPromises } from 'fs';
+
 
 @Injectable()
 export class PostsService {
@@ -13,6 +19,7 @@ export class PostsService {
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
+    private readonly connection: Connection
   ) {}
 
   async getAllPosts(): Promise<Post[]> {
@@ -42,6 +49,29 @@ export class PostsService {
         success: false,
         message: error.message,
       }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async saveImage(fileName, postId: number): Promise<string> {
+    try {
+      // Get the existing post
+      const postRepository = this.connection.getRepository(Post);
+      const existingPost = await postRepository.findOne({where: {id: postId}});
+
+      if (!existingPost) {
+        throw new BadRequestException('Post not found');
+      }
+
+      // Update the image property with the full URL filename
+      existingPost.image = fileName;
+
+      // Save the updated post to MySQL using TypeORM
+      await postRepository.save(existingPost);
+
+      return 'Post image updated successfully';
+    } catch (error) {
+      console.log(error)
+      throw new BadRequestException('Error updating post image');
     }
   }
 

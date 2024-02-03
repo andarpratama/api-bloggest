@@ -5,9 +5,20 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import typeOrmConfig from 'typeorm.config';
+import { join } from 'path';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { AuthModule } from './auth/auth.module';
+
 
 @Module({
-  imports: [TypeOrmModule.forRoot(typeOrmConfig), UsersModule, PostsModule],
+  imports: [
+    TypeOrmModule.forRoot(typeOrmConfig), 
+    UsersModule, PostsModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'images')
+    }),
+    AuthModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
